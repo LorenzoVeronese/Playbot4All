@@ -64,7 +64,7 @@ class LaserTracker(object):
             # Move to (xpos,ypos) on the screen
             cv2.moveWindow(name, xpos,  ypos)
 
-        def setup_camera_capture(self, device_num=0):
+        def setup_camera_capture(self, device_num=1):
             """Perform camera setup for the device number (default device = 0).
             Returns a reference to the camera Capture object.
             """
@@ -200,7 +200,12 @@ class LaserTracker(object):
                 q_line = y_center - x_center * m_line
                 x_point = self.cam_width #Substitute with self.cam_width
                 y_point = int(x_point * m_line + q_line)
-                cv2.line(frame, (int(x_center), int(y_center)), (x_point, y_point), (0, 255, 0), 2)
+                try:
+                    x_center = int(x_center)
+                    y_center = int(y_center)
+                    cv2.line(frame, (x_center, y_center), (x_point, y_point), (0, 255, 0), 2)
+                except:
+                    print("Cannot see pen")
                 #Now knowing the the axes, the real object lenght and tis center we can find where the real edge is
                     #First I caluclate half the side of the contour
                 half_side = visible_lenght/2 #(numpy.sqrt(numpy.square(box[0][0] - box[3][0]) + numpy.square(box[0][1] - box[3][1])))/2
@@ -209,9 +214,9 @@ class LaserTracker(object):
                     #Knowing the line angle i can find the points of the edge with cos and sin functions
                 x_edge = radius * numpy.cos(angle * numpy.pi /180) + x_center
                 y_edge = radius * numpy.sin(angle * numpy.pi /180) + y_center
-                print(radius)
-                print(x_edge)
-                print(y_edge)
+                #print(radius)
+                #print(x_edge)
+                #print(y_edge)
                 cv2.circle(frame, (int(x_edge), int(y_edge)), 50,
                            (0, 255, 255), 2)
 
