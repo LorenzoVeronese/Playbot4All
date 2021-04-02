@@ -1,4 +1,5 @@
 # https://www.geeksforgeeks.org/white-and-black-dot-detection-using-opencv-python/
+# NOTE: this doesn't work!
 import cv2
 import numpy
 
