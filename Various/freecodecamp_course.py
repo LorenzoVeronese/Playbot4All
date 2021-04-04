@@ -297,4 +297,103 @@ cv.waitKey(0)
 
 
 
+'''
 # MASKING
+# this allows us to focus on certain paths of an image
+img = cv.imread('Template.jpg')
+blank = np.zeros(img.shape[:2], dtype = 'uint8')
+
+mask = cv.circle(blank, (img.shape[1] //2, img.shape[0] // 2), 100, 255, -1)
+masked = cv.bitwise_and(img, img, mask = mask)
+cv.imshow('Test', masked)
+cv.waitKey(0)
+'''
+
+
+
+'''
+# COMPUTING ISTOGRAMS
+# this let you visualize the pixel intensity distribution
+img = cv.imread('Template.jpg')
+gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+
+# second argument: are channels: how many channels I want to compute (in our
+    # case we've passed a grayscale picture)
+# third arg: mask, if we want to compute only a certain area of the picture
+gray_hist = cv.calcHist([gray], [0], None, [256], [0, 256])
+
+plt.figure()
+plt.title('Grayscale Histogram')
+plt.xlabel('Bins')
+plt.ylabel('Num of pixels')
+plt.plot(gray_hist)
+plt.xlim([0, 256])
+plt.show()
+# bins: represent the intervals of pixel's intensity
+
+# COLOR HISTOGRAM
+plt.figure()
+plt.title('Grayscale Histogram')
+plt.xlabel('Bins')
+plt.ylabel('Num of pixels')
+colors = ('b', 'g', 'r')
+for i, col in enumerate(colors):
+    hist = cv.calcHist([img], [i], None, [256], [0, 256])
+    plt.plot(hist, color = col)
+    plt.xlim([0, 256])
+plt.show()
+# if you have problems using masks in this case, look min 2:14:00 of the video
+
+# all of this is useful when you want to equalize the image, eliminating
+# high values
+'''
+
+
+
+'''
+# THRESHOLDING
+# we convert an image to a binary one, with only black and white. we set a threshold
+# value above which the pixel is white, below which is black
+img = cv.imread('Template.jpg')
+
+# SIMPLE THRESHOLDING
+gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+# 100 is the thresholding value
+threshold, thresh = cv.threshold(gray, 100, 255, cv.THRESH_BINARY) # if you give cv.THRESH_BINARY_INV it gives the inverted one 
+
+# ADAPTIVE THRESHOLDING
+# there is also ADAPTIVE_THRESH_GAUSSIAN (it uses the weight, not the mean)
+adaptive_thresh = cv.adaptiveThreshold(gray, 255, cv.ADAPTIVE_THRESH_MEAN_C, cv.THRESH_BINARY, 11, 10)
+
+cv.imshow('Test', adaptive_thresh)
+cv.waitKey(0)
+'''
+
+
+
+'''
+# EDGE DETECTION
+img = cv.imread('Template.jpg')
+gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+# LAPLACIAN
+lap = cv.Laplacian(gray, cv.CV_64F)
+lap = np.uint8(np.absolute(lap))
+
+# SOBEL
+# this computes gradient in x and y directions
+sobelx = cv.Sobel(gray, cv.CV_64F, 1, 0)
+sobely = cv.Sobel(gray, cv.CV_64F, 0, 1)
+# cv.imshow('Test', sobelx)
+# cv.imshow('Test', sobely)
+# cv.waitKey(0)
+combined_sobel = cv.bitwise_or(sobelx, sobely)
+cv.imshow('Test', combined_sobel)
+cv.waitKey(0)
+'''
+
+
+
+
+# FACE DETECTION WITH HAAR CASCADES
+# we use an algorithm which make clusters
+# on opencv github there are some xml useful
