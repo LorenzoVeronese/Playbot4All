@@ -397,3 +397,4 @@ cv.waitKey(0)
 # FACE DETECTION WITH HAAR CASCADES
 # we use an algorithm which make clusters
 # on opencv github there are some xml useful
+# see 'face_detect'
