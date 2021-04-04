@@ -1,5 +1,7 @@
+# https://www.youtube.com/watch?v=oXlwWbU8l2o&list=WL&index=166&t=3175s
 import cv2 as cv
 import numpy as np
+import matplotlib.pyplot as plt
 
 '''
 # PICTURE
@@ -7,6 +9,7 @@ img = cv.imread('Template.jpg')
 cv.imshow('Template', img)
 cv.waitKey(0) # close the pic's window if I press '0'
 '''
+
 
 
 '''
@@ -26,6 +29,7 @@ def changeResolution(width, height):
 '''
 
 
+
 '''
 # VIDEO
 capture = cv.VideoCapture(0) # 0 for cam, path for video
@@ -42,6 +46,7 @@ while True:
 
 cv.destroyAllWindows()
 '''
+
 
 
 '''
@@ -72,6 +77,7 @@ cv.waitKey(0)
 '''
 
 
+
 '''
 # BASIC FUNCTIONS
 # converting to grayscale
@@ -98,6 +104,7 @@ cropped = img[50:200, 200:400]
 cv.imshow('Test', cropped)
 cv.waitKey(0)
 '''
+
 
 
 '''
@@ -140,6 +147,7 @@ cv.waitKey(0)
 '''
 
 
+
 '''
 # CONTOUR DETECTION
 img = cv.imread('Template.jpg')
@@ -166,3 +174,121 @@ cv.waitKey(0)
 
 # TIP: start using canny, then use threshold if you are not happy
 '''
+
+
+
+'''
+# COLOR SPACES
+# NOTE: when OpenCV displays an image, it assumes that it's a BGR, so if you
+# pass it another format, you will see (using imshow) strange colours. For example
+# if you convert an image BGR -> RGB OpenCV will show it as strange, but matplotlib, which
+# is set on RGB, will show it correctly
+img = cv.imread('Template.jpg')
+
+# BGR -> grayscale
+gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+
+# BGR -> HSV (based on how human perceive color)
+hsv = cv.cvtColor(img, cv.COLOR_BGR2HSV)
+
+#BGR -> LAB
+lab = cv.cvtColor(img, cv.COLOR_BGR2LAB)
+
+# other libraries doesn't use BGR format. ex matplotlib displays as RGB 
+plt.imshow(img)
+
+# BGR -> RGB
+rgb = cv.cvtColor(img, cv.COLOR_BGR2RGB)
+
+# you can make all inverse conversions, except for grayscale -> HSV (to make this
+# you should do: grayscale -> BGR -> HSV)
+
+# HSV -> BGR
+hsv_bgr = cv.cvtColor(hsv, cv.COLOR_HSV2BGR)
+cv.imshow('Test', hsv_bgr)
+cv.waitKey(0)
+'''
+
+
+
+'''
+# COLOR CHANNELS
+img = cv.imread('Template.jpg')
+# there are 3 color channels: blue, green, red
+b, g, r = cv.split(img) # this splits the img into it's 3 colors
+# this print in grayscale, which shows the distribution of color's
+# intensities on every pixel (lighter = more concentrated)
+cv.imshow('Test', b)
+print(img.shape)
+print(b.shape) # in effects, this has one shape: grayscale with imshow
+print(g.shape)
+print(r.shape)
+cv.waitKey(0)
+
+# let's merge the color channels together: you get the initial picture
+merged = cv.merge([b, g, r])
+cv.imshow('Test', merged)
+cv.waitKey(0)
+
+# and if I don't want to see a grayscale when I show the channel? Let's
+# use a blank picture
+blank = np.zeros(img.shape[:2], dtype = 'uint8')
+blue = cv.merge([b, blank, blank]) # NOTE: the position of the blanks
+green = cv.merge([blank, g, blank])
+red = cv.merge([blank, blank, r])
+# as above: light = high distribution
+cv.imshow('Test', red)
+cv.waitKey(0)
+'''
+
+
+
+'''
+# BLURRING TECHNIQUES
+img = cv.imread('Template.jpg')
+# we use to blur an image when it has lots of noise
+# kernel/window = it's a window you draw over an image with size named "kernel size"
+    # (ex if it's divided into 9 squares, it has kernel_size = 3x3). Blur is applied to
+    # the middle pixer according to pixels which surround it
+# AVERAGING
+# we define a window and compute the single pixel as result of the ones which surrounds it
+average = cv.blur(img, (3, 3)) # (3, 3) is the kernel size
+
+# GAUSSIAN BLURING
+# instead of compute the average, it gives a weight to all pixels and then computes the 
+# product of all values. this appears as more natural
+gauss = cv.GaussianBlur(img, (3, 3), 0)
+
+# MEDIAN BLUR
+# instead of finding the average, it finds the median (mediana)
+# generally this method isn't good with large kernel sizes
+median = cv.medianBlur(img, 3) # opencv assumes that this will be 3x3 simply giving it 3
+
+# BILATERAL BLURING
+# this consider contours. far pixels can influence
+bilateral = cv.bilateralFilter(img, 5, 15, 15)
+cv.imshow('Test', bilateral)
+cv.waitKey(0)
+'''
+
+
+
+# BITWISE OPERATIONS
+blank = np.zeros((400, 400), dtype = 'uint8')
+
+rectangle = cv.rectangle(blank.copy(), (30, 30), (370, 370), 255, -1)
+circle = cv.circle(blank.copy(), (200, 200), 200, 255, -1)
+
+# AND (intersecting regions)
+bitwise_and = cv.bitwise_and(rectangle, circle)
+
+# OR (both intersecting and not-intersecting regions)
+bitwise_or = cv.bitwise_or(rectangle, circle)
+
+# XOR (for non-intersecting regions)
+bitwise_xor = cv.bitwise_xor(rectangle, circle)
+
+# NOT (invert)
+bitwise_not = cv.bitwise_not(rectangle)
+cv.imshow('Test', bitwise_not)
+cv.waitKey(0)
