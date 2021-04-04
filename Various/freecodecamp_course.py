@@ -140,7 +140,7 @@ cv.waitKey(0)
 '''
 
 
-
+'''
 # CONTOUR DETECTION
 img = cv.imread('Template.jpg')
 
@@ -148,5 +148,21 @@ gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
 # Second and third arguments of cv2.canny are our minVal and maxVal respectively.
 canny = cv.Canny(img, 125, 175)
 
-cv.imshow('Test', canny)
+# contours: it's a list of coordinates of the contours found
+# hierarchies: ex if you have a rectangle and inside it a square ecc
+# CHAIN_...: says what type of approximation we want
+contours, hierarchies = cv.findContours(canny, cv.RETR_LIST, cv.CHAIN_APPROX_NONE) #RETR_... according to what you want: external contours, all...
+print(f'{len(contours)} contour(s) found')
+
+# ANOTHER WAY of finding contours: THRESHOLD and then draw on BLANK background
+# this binarizes the image
+ret, thresh = cv.threshold(gray, 125, 255, cv.THRESH_BINARY)
+
+blank = np.zeros(img.shape, dtype='uint8')
+# now we want to draw contours on this blank image
+cv.drawContours(blank, contours, -1, (0, 0, 255), 1)
+cv.imshow('Test', blank)
 cv.waitKey(0)
+
+# TIP: start using canny, then use threshold if you are not happy
+'''
