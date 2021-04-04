@@ -273,6 +273,7 @@ cv.waitKey(0)
 
 
 
+'''
 # BITWISE OPERATIONS
 blank = np.zeros((400, 400), dtype = 'uint8')
 
@@ -292,3 +293,8 @@ bitwise_xor = cv.bitwise_xor(rectangle, circle)
 bitwise_not = cv.bitwise_not(rectangle)
 cv.imshow('Test', bitwise_not)
 cv.waitKey(0)
+'''
+
+
+
+# MASKING
