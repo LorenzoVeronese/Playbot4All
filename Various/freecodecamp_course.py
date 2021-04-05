@@ -215,7 +215,7 @@ cv.waitKey(0)
 # COLOR CHANNELS
 img = cv.imread('Template.jpg')
 # there are 3 color channels: blue, green, red
-b, g, r = cv.split(img) # this splits the img into it's 3 colors
+b, g, r = cv.split(img) # this splits the img into its 3 colors
 # this print in grayscale, which shows the distribution of color's
 # intensities on every pixel (lighter = more concentrated)
 cv.imshow('Test', b)
