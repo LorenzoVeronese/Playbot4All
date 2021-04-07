@@ -85,11 +85,11 @@ while True:
     '''
 
     # LASER TRACKING
-    center = laser_tracking(frame)
+    center_laser = laser_tracking(frame)
     # the circle's center is at the mean value
     cv2.circle(
         frame, 
-        center, 
+        center_laser, 
         100, (0, 255, 0), 4
     )
     cv2.imshow('Normal', frame)
@@ -111,6 +111,17 @@ while True:
     print(min_col, min_row)
     cv2.imshow('HSV', v)
     '''
+
+
+    # HAND DETECTION
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    lower = numpy.array([0, 60, 90], dtype="uint8")#0, 48, 80
+    upper = numpy.array([20, 225, 225], dtype="uint8")#20, 255, 255
+    skinMask = cv2.inRange(hsv, lower, upper)
+
+    
+
+    cv2.imshow('Skin', skinMask)
 
     key = cv2.waitKey(1)
     if key == 27:

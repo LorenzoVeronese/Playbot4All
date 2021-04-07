@@ -479,3 +479,4 @@ if __name__ == '__main__':
     )
     tracker.run()
     camera.release()
+    
