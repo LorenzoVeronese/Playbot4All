@@ -5,7 +5,8 @@ import sys
 import imutils
 from collections import deque
 
-OBJECT_LENGHT = (16 / 2.54) * 96 #(cm/(inches * cm)) * (pixel*inches) (resolution
+OBJECT_LENGHT = (15 / 2.54) * 96 #(cm/(inches * cm)) * (pixel*inches) (resolution
+
 
 def empty(a):
     pass
@@ -22,6 +23,15 @@ cv2.createTrackbar("Val MAX", "Prova", 255, 255, empty)
 class LaserTracker(object):
         #Set values to the trackbar output calues
         def values(self):
+            self.hue_min = 17
+            self.hue_max = 65
+            self.sat_min = 95
+            self.sat_max = 255
+            self.val_min = 111
+            self.val_max = 255
+
+        #HSHSV values to detect an hand
+        def values_mano(self):
             self.hue_min = cv2.getTrackbarPos("Hue MIN", "Prova")
             self.hue_max = cv2.getTrackbarPos("Hue MAX", "Prova")
             self.sat_min = cv2.getTrackbarPos("Sat MIN", "Prova")
@@ -31,7 +41,7 @@ class LaserTracker(object):
 
         def __init__(self, cam_width=640, cam_height=480, hue_min=20, hue_max=120,
                  sat_min=100, sat_max=255, val_min=200, val_max=256,
-                 display_thresholds=False):
+                 display_thresholds=False, q_line_mano=0, m_line_mano=0):
 
             #Initial values
             self.cam_width = cam_width
@@ -43,6 +53,8 @@ class LaserTracker(object):
             self.val_min = val_min
             self.val_max = val_max
             self.display_thresholds = display_thresholds
+            self.m_line_mano = 0
+            self.q_line_mano = 0
 
             self.capture = None  # camera capture device
             self.channels = {
@@ -128,11 +140,35 @@ class LaserTracker(object):
                 cv2.THRESH_BINARY  # type
             )
 
-            #if channel == 'hue':
-                # only works for filtering red color because the range for the hue
-                # is split
-             #   self.channels['hue'] = cv2.bitwise_not(self.channels['hue'])
-                #self.channels['hue'] = cv2.bitwise_and(self.channels['hue'], self.channels['hue_blu'])
+
+        def track_mano(self, frame, mask):
+
+            pts = deque(maxlen=64)
+            cnts = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL,
+                                    cv2.CHAIN_APPROX_SIMPLE)
+            cnts = imutils.grab_contours(cnts)
+            center = None
+            # only proceed if at least one contour was found
+            if len(cnts) > 0:
+                # find the largest contour in the mask, then use
+                # it to compute the minimum enclosing circle and
+                # centroid
+                c = max(cnts, key=cv2.contourArea)
+
+                rect = cv2.minAreaRect(c)
+                box = cv2.boxPoints(rect)
+                box = numpy.int0(box)
+                #Fist point of the box is le lowest, than we determine the seocond lowest and one on the top
+                lower_point_1 = box[3]
+                if box[0][1] > box [2][1]:
+                    lower_point_2 = box[0]
+                else:
+                    lower_point_2 = box[2]
+
+                self.m_line_mano = (lower_point_2[1] - lower_point_1[1])/(lower_point_2[0] - lower_point_1[0])
+                self.q_line_mano = lower_point_1[1] - lower_point_1[0] * self.m_line_mano
+                cv2.line(frame, (lower_point_1[0], lower_point_1[1]), (lower_point_2[0], lower_point_2[1]), (0, 255, 0), 2)
+
 
         def track(self, frame, mask):
             """
@@ -192,18 +228,22 @@ class LaserTracker(object):
                 box = numpy.int0(box)
                 cv2.drawContours(frame, [box], 0, (0, 0, 255), 2)
                 #Find the object rotationa angle, its center and finds the line going throught the center and parallel to the object countor (its axes)
-                angle = rect[2]
-                m_line = numpy.tan(angle * numpy.pi / 180)
+                if box[0][1] > box[2][1]:
+                    highest_point_2 = box[0]
+                else:
+                    highest_point_2 = box[2]
+                lowest_point = box[1]
+                m_line = (highest_point_2[1] - lowest_point[1]) / (highest_point_2[0] - lowest_point[0])
                 x_center = rect[0][0]
                 y_center = rect[0][1]
                 visible_lenght = rect[1][0]
                 q_line = y_center - x_center * m_line
                 x_point = self.cam_width #Substitute with self.cam_width
-                y_point = int(x_point * m_line + q_line)
                 try:
+                    y_point = int(x_point * m_line + q_line)
                     x_center = int(x_center)
                     y_center = int(y_center)
-                    cv2.line(frame, (x_center, y_center), (x_point, y_point), (0, 255, 0), 2)
+                    #cv2.line(frame, (x_center, y_center), (x_point, y_point), (0, 255, 0), 2)
                 except:
                     print("Cannot see pen")
                 #Now knowing the the axes, the real object lenght and tis center we can find where the real edge is
@@ -212,13 +252,15 @@ class LaserTracker(object):
                     #Than I find the radius of the points with center in the countr center and distant le object lenght - half the dise
                 radius = OBJECT_LENGHT - half_side #+ numpy.sqrt(numpy.square(y_center) + numpy.square(x_center))
                     #Knowing the line angle i can find the points of the edge with cos and sin functions
-                x_edge = radius * numpy.cos(angle * numpy.pi /180) + x_center
-                y_edge = radius * numpy.sin(angle * numpy.pi /180) + y_center
+                x_edge = (self.q_line_mano - q_line)/(m_line - self.m_line_mano)
+                y_edge = x_edge*m_line + q_line
                 #print(radius)
                 #print(x_edge)
                 #print(y_edge)
-                cv2.circle(frame, (int(x_edge), int(y_edge)), 50,
-                           (0, 255, 255), 2)
+                try:
+                    cv2.circle(frame, (int(x_edge), int(y_edge)), 50,(0, 255, 255), 2)
+                except:
+                    print("Cannot see hand")
 
                 """print(int(x_center))
                 print(int(y_center))
@@ -255,6 +297,46 @@ class LaserTracker(object):
                 # draw the connecting lines
                 thickness = int(numpy.sqrt(64 / float(i + 1)) * 2.5)
                 cv2.line(frame, pts[i - 1], pts[i], (0, 0, 255), thickness)
+
+        def detect_mano(self, frame):
+            hsv_img = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+
+            # split the video frame into color channels
+            h, s, v = cv2.split(hsv_img)
+
+            self.channels['hue'] = h
+            self.channels['saturation'] = s
+            self.channels['value'] = v
+
+            self.values_mano()
+            # Threshold ranges of HSV components; storing the results in place
+            self.threshold_image("hue")
+            self.threshold_image("saturation")
+            self.threshold_image("value")
+
+            # Perform an AND on HSV components to identify the laser!
+            self.channels['laser'] = cv2.bitwise_and(
+                self.channels['hue'],
+                self.channels['value']
+            )
+            self.channels['laser'] = cv2.bitwise_and(
+                self.channels['saturation'],
+                self.channels['laser']
+            )
+
+            # Merge the HSV components back together.
+            hsv_image = cv2.merge([
+                self.channels['hue'],
+                self.channels['saturation'],
+                self.channels['value'],
+            ])
+
+            # A series of erosions and dilations to remove any small blobs that may be left on the mask.
+            # self.channels['laser'] = cv2.erode(self.channels['laser'], None, iterations=2)
+            # self.channels['laser'] = cv2.dilate(self.channels['laser'], None, iterations=2)
+
+            self.track_mano(frame, self.channels['laser'])
+            return hsv_img
 
         def detect(self, frame):
             hsv_img = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
@@ -338,6 +420,8 @@ class LaserTracker(object):
                     sys.stderr.write("Could not read camera frame. Quitting\n")
                     sys.exit(1)
 
+                hsv_image_mano = self.detect_mano(frame)
+                cv2.imshow('Mano', self.channels['laser'])
                 hsv_image = self.detect(frame)
                 self.display(hsv_image, frame)
                 self.handle_quit()
