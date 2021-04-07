@@ -76,7 +76,7 @@ class LaserTracker(object):
             # Move to (xpos,ypos) on the screen
             cv2.moveWindow(name, xpos,  ypos)
 
-        def setup_camera_capture(self, device_num=1):
+        def setup_camera_capture(self, device_num=0):
             """Perform camera setup for the device number (default device = 0).
             Returns a reference to the camera Capture object.
             """
@@ -89,7 +89,7 @@ class LaserTracker(object):
                 sys.stderr.write("Invalid Device. Using default device 0\n")
 
             # Try to start capturing frames
-            self.capture = cv2.VideoCapture(device)
+            self.capture = cv2.VideoCapture(device, cv2.CAP_DSHOW)
             if not self.capture.isOpened():
                 sys.stderr.write("Failed to Open Capture device. Quitting.\n")
                 sys.exit(1)
@@ -478,3 +478,4 @@ if __name__ == '__main__':
         display_thresholds=params.display
     )
     tracker.run()
+    camera.release()
