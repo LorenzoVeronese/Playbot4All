@@ -17,18 +17,6 @@ import imutils
 # TODO:
 #   know if the hand/pen are in the circle around the laser
 
-class Tracker(object):
-    def __init__(self, camera = 0):
-        self.camera = camera
-        self.frame = None
-        self.previous_frame = None
-
-    def start(self, camera):
-        """
-        start capturing frames from video
-        """
-
-
 
 
 def laser_tracking(frame):
@@ -112,17 +100,15 @@ cam = cv2.VideoCapture(0)
 while True:
     check, frame = cam.read()
     
-
     # CANNY METHOD
     # frame manipulation to get a more visible frame
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     # NOTE: we have to try lots of values to see the best ones
-    blur = cv2.GaussianBlur(gray, (3, 3), cv2.BORDER_DEFAULT)
-    eroded = cv2.erode(blur, (3, 3), iterations = 3)
-    canny = cv2.Canny(eroded, 125, 175)
+    blur = cv2.GaussianBlur(gray, (7, 7), cv2.BORDER_DEFAULT)
+    eroded = cv2.erode(blur, (7, 7), iterations = 3)
+    canny = cv2.Canny(blur, 125, 175)  # 125, 175
 
-    # cv2.imshow('Canny', canny)
-
+    cv2.imshow('Canny', canny)
 
     '''
     # CONTOURS METHOD
@@ -164,18 +150,19 @@ while True:
     cv2.imshow('HSV', v)
     '''
 
-
     # HAND DETECTION
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
     lower = numpy.array([0, 80, 100], dtype="uint8")#0, 48, 80
     upper = numpy.array([20, 200, 200], dtype="uint8")#20, 255, 255
     skin_mask = cv2.inRange(hsv, lower, upper)
 
+    '''
     low_paper = numpy.array([100, 100, 100], dtype="uint8")  # 0, 48, 80
     up_paper = numpy.array([225, 225, 225], dtype="uint8")  # 20, 255, 255
     paper_mask = cv2.inRange(frame, low_paper, up_paper)
 
     cv2.imshow('Paper', paper_mask)
+    '''
 
     # NOTE: catch error when you have white light
     M = cv2.moments(skin_mask)
@@ -195,14 +182,14 @@ while True:
     )
     bitwise_and = cv2.bitwise_and(skin_mask, circle)
     '''
-    cv2.imshow('Skin Mask', skin_mask)
-    #cv2.imshow('s', circle)
-    cv2.imshow('Skin AND Laser', bitwise_and)
-    cv2.imshow('Frame', frame)
+    # cv2.imshow('Skin Mask', skin_mask)
+    # cv2.imshow('s', circle)
+    # cv2.imshow('Skin AND Laser', bitwise_and)
+    # cv2.imshow('Frame', frame)
 
     key = cv2.waitKey(1)
     if key == 27:
         break
 
-    cam.release()
-    cv2.destroyAllWindows()
+cam.release()
+cv2.destroyAllWindows()

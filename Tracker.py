@@ -102,8 +102,12 @@ class Tracker(object):
 
         # NOTE: catch error when you have white light
         M = cv2.moments(self.hand_mask)
-        cX = int(M["m10"] / M["m00"])
-        cY = int(M["m01"] / M["m00"])
+        try:
+            cX = int(M["m10"] / M["m00"])
+            cY = int(M["m01"] / M["m00"])
+        except (ZeroDivisionError):
+            cX = 0
+            cY = 0
 
         self.hand_pos = (cX - 25, cY - 25)
         return self.hand_pos
