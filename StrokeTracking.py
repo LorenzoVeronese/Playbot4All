@@ -121,7 +121,7 @@ while True:
     cv2.drawContours(blank, contours, -1, (255, 255, 255), 1)
     cv2.imshow('Contours', blank)
     '''
-
+    '''
     # LASER TRACKING
     center_laser = laser_tracking(frame)
     # the circle's center is at the mean value
@@ -131,7 +131,7 @@ while True:
         100, (0, 255, 0), 4
     )
     #cv2.imshow('Normal', frame)
-
+    '''
 
     '''
     # NOTE: we can use matplotlib to see which values are the best 
@@ -149,13 +149,13 @@ while True:
     print(min_col, min_row)
     cv2.imshow('HSV', v)
     '''
-
+    '''
     # HAND DETECTION
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
     lower = numpy.array([0, 80, 100], dtype="uint8")#0, 48, 80
     upper = numpy.array([20, 200, 200], dtype="uint8")#20, 255, 255
     skin_mask = cv2.inRange(hsv, lower, upper)
-
+    '''
     '''
     low_paper = numpy.array([100, 100, 100], dtype="uint8")  # 0, 48, 80
     up_paper = numpy.array([225, 225, 225], dtype="uint8")  # 20, 255, 255
@@ -164,6 +164,7 @@ while True:
     cv2.imshow('Paper', paper_mask)
     '''
 
+    '''
     # NOTE: catch error when you have white light
     M = cv2.moments(skin_mask)
     cX = int(M["m10"] / M["m00"])
@@ -171,7 +172,7 @@ while True:
     cv2.circle(frame, (cX, cY), 5, (255, 255, 255), -1)
     cv2.putText(frame, "centroid", (cX - 25, cY - 25),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
-
+    '''
 
     '''
     blank = numpy.zeros((len(frame), len(frame[0])), dtype='uint8')
@@ -186,6 +187,51 @@ while True:
     # cv2.imshow('s', circle)
     # cv2.imshow('Skin AND Laser', bitwise_and)
     # cv2.imshow('Frame', frame)
+
+
+
+
+
+
+    # PAPER DETECTION
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    lower = numpy.array([105, 105, 105], dtype="uint8")  # 0, 48, 80
+    upper = numpy.array([200, 200, 225], dtype="uint8")  # 20, 255, 255
+    hsv_mask = cv2.inRange(frame, lower, upper)
+
+    blank = numpy.zeros((len(frame), len(frame[0])), dtype='uint8')
+    lower = numpy.array([95, 95, 100], dtype="uint8")  # 0, 48, 80
+    upper = numpy.array([210, 210, 210], dtype="uint8")  # 20, 255, 255
+    paper_mask = cv2.inRange(frame, lower, upper)
+
+    bitwise_and = cv2.bitwise_and(hsv_mask, paper_mask)
+    cnts, hierarchies = cv2.findContours(bitwise_and, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_TC89_KCOS)
+    cv2.drawContours(blank, cnts, -1, (255, 255, 255), 1)
+    #cv2.imshow('HSV', hsv_mask)
+    #cv2.imshow('Paper', paper_mask)
+    cv2.imshow('Paper Contours', blank)
+
+
+    cnts = imutils.grab_contours(cnts)
+    if len(cnts) > 0:
+        # find the largest contour in the mask, then use
+        # it to compute the minimum enclosing circle and
+        # centroid
+        c = max(cnts, key=cv2.contourArea)
+
+        rect = cv2.minAreaRect(c)
+        box = cv2.boxPoints(rect)
+        box = numpy.int0(box)
+        #Fist point of the box is le lowest, than we determine the seocond lowest and one on the top
+        lower_point_1 = box[3]
+        if box[0][1] > box[2][1]:
+            lower_point_2 = box[0]
+        else:
+            lower_point_2 = box[2]
+        ciao = cv2.line(frame, (lower_point_1[0], lower_point_1[1]),
+                 (lower_point_2[0], lower_point_2[1]), (0, 255, 0), 2)
+        cv2.imshow('box', ciao)
+
 
     key = cv2.waitKey(1)
     if key == 27:
