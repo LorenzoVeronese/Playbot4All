@@ -188,30 +188,55 @@ while True:
     # cv2.imshow('Skin AND Laser', bitwise_and)
     # cv2.imshow('Frame', frame)
 
-
-
-
-
-
-    # PAPER DETECTION
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-    lower = numpy.array([105, 105, 105], dtype="uint8")  # 0, 48, 80
-    upper = numpy.array([200, 200, 225], dtype="uint8")  # 20, 255, 255
-    hsv_mask = cv2.inRange(frame, lower, upper)
+    lower = numpy.array([0, 0, 230], dtype="uint8")  # 0, 48, 80
+    upper = numpy.array([20, 100, 255], dtype="uint8")  # 20, 255, 255
+    skin_mask = cv2.inRange(hsv, lower, upper)
+    cv2.imshow("Laser",skin_mask)
 
+    '''
+    # PAPER DETECTION
     blank = numpy.zeros((len(frame), len(frame[0])), dtype='uint8')
-    lower = numpy.array([95, 95, 100], dtype="uint8")  # 0, 48, 80
-    upper = numpy.array([210, 210, 210], dtype="uint8")  # 20, 255, 255
-    paper_mask = cv2.inRange(frame, lower, upper)
 
-    bitwise_and = cv2.bitwise_and(hsv_mask, paper_mask)
+    lower = numpy.array([95, 95, 100], dtype="uint8")  # 0, 48, 80
+    upper = numpy.array([255, 255, 255], dtype="uint8")  # 20, 255, 255
+    color_mask = cv2.inRange(frame, lower, upper)
+
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    lower = numpy.array([0, 0, 120], dtype="uint8")  # 105
+    upper = numpy.array([179, 110, 255], dtype="uint8")  # 20, 255, 255
+    hsv_mask = cv2.inRange(hsv, lower, upper)
+
+    bitwise_and = cv2.bitwise_and(hsv_mask, color_mask)
+
+    ret, thresh = cv2.threshold(bitwise_and, 40, 255, 0)
+
+    
+    contours, hierarchy = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+
+    if len(contours) != 0:
+        # draw in blue the contours that were founded
+        cv2.drawContours(blank, contours, -1, (255, 255, 0), -1)
+
+        # find the biggest countour (c) by the area
+        c = max(contours, key=cv2.contourArea)
+        x, y, w, h = cv2.boundingRect(c)
+
+        # draw the biggest contour (c) in green
+        cv2.rectangle(blank, (x, y), (x+w, y+h), (0, 255, 0), 2)
+
+    # show the images
+    cv2.imshow("Result", blank)
+    '''
+
+    '''
     cnts, hierarchies = cv2.findContours(bitwise_and, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_TC89_KCOS)
     cv2.drawContours(blank, cnts, -1, (255, 255, 255), 1)
-    #cv2.imshow('HSV', hsv_mask)
-    #cv2.imshow('Paper', paper_mask)
+    cv2.imshow('HSV', hsv_mask)
+    cv2.imshow('Paper', paper_mask)
     cv2.imshow('Paper Contours', blank)
-
-
+    '''
+    '''
     cnts = imutils.grab_contours(cnts)
     if len(cnts) > 0:
         # find the largest contour in the mask, then use
@@ -231,7 +256,7 @@ while True:
         ciao = cv2.line(frame, (lower_point_1[0], lower_point_1[1]),
                  (lower_point_2[0], lower_point_2[1]), (0, 255, 0), 2)
         cv2.imshow('box', ciao)
-
+        '''
 
     key = cv2.waitKey(1)
     if key == 27:
