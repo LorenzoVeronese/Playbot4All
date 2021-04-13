@@ -183,6 +183,7 @@ while True:
     )
     bitwise_and = cv2.bitwise_and(skin_mask, circle)
     '''
+    '''
     # cv2.imshow('Skin Mask', skin_mask)
     # cv2.imshow('s', circle)
     # cv2.imshow('Skin AND Laser', bitwise_and)
@@ -193,8 +194,8 @@ while True:
     upper = numpy.array([20, 100, 255], dtype="uint8")  # 20, 255, 255
     skin_mask = cv2.inRange(hsv, lower, upper)
     cv2.imshow("Laser",skin_mask)
-
     '''
+    
     # PAPER DETECTION
     blank = numpy.zeros((len(frame), len(frame[0])), dtype='uint8')
 
@@ -215,19 +216,21 @@ while True:
     contours, hierarchy = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
 
     if len(contours) != 0:
-        # draw in blue the contours that were founded
-        cv2.drawContours(blank, contours, -1, (255, 255, 0), -1)
-
-        # find the biggest countour (c) by the area
         c = max(contours, key=cv2.contourArea)
-        x, y, w, h = cv2.boundingRect(c)
+        # draw in blue the contours that were founded
+        cv2.drawContours(blank, c, -1, 255, 50)
+        # fill the area inside the contours founded
+        cv2.fillPoly(blank, pts=[c], color=(255, 255, 255))
+        # find the biggest countour (c) by the area
+        #c = max(contours, key=cv2.contourArea)
+        #x, y, w, h = cv2.boundingRect(c)
 
         # draw the biggest contour (c) in green
-        cv2.rectangle(blank, (x, y), (x+w, y+h), (0, 255, 0), 2)
+        #cv2.rectangle(blank, (x, y), (x+w, y+h), (0, 255, 0), 2)
 
     # show the images
     cv2.imshow("Result", blank)
-    '''
+    
 
     '''
     cnts, hierarchies = cv2.findContours(bitwise_and, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_TC89_KCOS)

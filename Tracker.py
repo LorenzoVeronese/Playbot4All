@@ -12,8 +12,8 @@ class Tracker(object):
         self.prev_frame = None
         self.laser_pos = (0, 0)
         self.hand_pos = (0, 0)
-        self.hand_mask = None
         self.paper_mask = None
+        self.hand_mask = None
         # what to display (debugging): see funct 'display'
         self.display_flags = {
             'laser' : LASER, 
@@ -45,6 +45,24 @@ class Tracker(object):
         return self.camera
 
 
+    def setup_paper_mask(self):
+        """
+        When you start the program, you need to know where the paper is:
+        this create the mask of it.
+        NOTE 1: there must be nothing on the paper! The paper must be the only
+        "relevant" object on the desk
+        NOTE 2: this stage is in the very beginning of the run, so the camera
+        must be directed to the paper from the start
+        NOTE 3: if the camera will move with the head, we will need to
+        move also the hand_mask created at this step
+        """
+        i = 0
+        for i in range(0, 30):
+            check, self.frame = self.camera.read()
+            self.paper_tracking()
+        self.camera.release()
+
+
     def paper_tracking(self):
         """
         find the paper. This is useful to select the input only in the interesting
@@ -71,8 +89,11 @@ class Tracker(object):
         contours, hierarchy = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
 
         if len(contours) != 0:
+            c = max(contours, key=cv2.contourArea)
             # draw in blue the contours that were founded
-            cv2.drawContours(blank, contours, -1, (255, 255, 0), -1)
+            cv2.drawContours(blank, c, -1, 255, -1)
+            # fill the area inside the contours founded
+            cv2.fillPoly(blank, pts=[c], color=(255, 255, 255))
         
         self.paper_mask = blank
         return self.paper_mask
@@ -86,9 +107,9 @@ class Tracker(object):
         this splits color channels: I take red, I find the position
         of the pixel with max red value (red laser)
         NOTE: the red light in the hand distracts this tracker, which
-            start to go on the hand and not on the laser. So I decided
-            to use also brightness (see when I use h) and then take the mean
-            as the center value
+        start to go on the hand and not on the laser. So I decided
+        to use also brightness (see when I use h) and then take the mean
+        as the center value
         """
         frame = self.frame.copy()
         b, g, r = cv2.split(frame)
@@ -208,9 +229,11 @@ class Tracker(object):
         """
         Run the program
         """
-        # Set up the camera capture
+        # Set up the camera capture and paper_mask
         self.setup_camera_capture(camera_num)
-        
+        self.setup_paper_mask()
+        self.setup_camera_capture(camera_num)
+
         while True:
             # capture the current image
             check, self.frame = self.camera.read()
@@ -218,17 +241,20 @@ class Tracker(object):
                 sys.stderr.write("Could not read camera frame. Quitting\n")
                 sys.exit(1)
             
-            self.paper_tracking()
+            # make trackings
+            # self.paper_tracking() this is not used here anymore: see paper_mask_setup
             self.laser_tracking()
             self.hand_tracking()
 
             # display videos according to flags set
             to_display = self.display()
-            for video in to_display.items():
-                # TODO: catch the case in which the video is not in the
-                # dictionary (flag off)
-                cv2.imshow(f'{video[0]}', video[1])
+            if len(to_display.items()) == 0:
+                pass
+            else:
+                for video in to_display.items():
+                    cv2.imshow(f'{video[0]}', video[1])
             
+            # to stop the process
             key = cv2.waitKey(1)
             if key == 27:
                 break
