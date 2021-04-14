@@ -6,20 +6,22 @@ import imutils
 
 
 class Tracker(object):
-    def __init__(self, LASER, HAND, HAND_MASK, PAPER_MASK):
+    def __init__(self, LASER, HAND, PAPER_MASK, LASER_MASK, HAND_MASK):
         self.camera = None
         self.frame = None
         self.prev_frame = None
         self.laser_pos = (0, 0)
         self.hand_pos = (0, 0)
         self.paper_mask = None
+        self.laser_mask = None
         self.hand_mask = None
         # what to display (debugging): see funct 'display'
         self.display_flags = {
             'laser' : LASER, 
             'hand' : HAND, 
-            'hand_mask' : HAND_MASK,
-            'paper_mask' : PAPER_MASK
+            'laser_mask' : LASER_MASK,
+            'paper_mask' : PAPER_MASK,
+            'hand_mask' : HAND_MASK
         }
 
 
@@ -99,8 +101,9 @@ class Tracker(object):
         return self.paper_mask
 
 
-    # NOTE: this doesn't work so well: see laser_tracking
-    def laser_tracking_old(self):
+    # NOTE: this is very good when there's no red light which reflects
+    # on the hand
+    def laser_tracking_1(self):
         """
         Find the laser
         EXECUTION
@@ -142,10 +145,19 @@ class Tracker(object):
 
         # compute the mean value
         self.laser_pos = (int(statistics.mean(rows)), int(statistics.mean(cols)))
+
+        # "fake" laser_mask. This laser_mask is useful only with laser_tracking_2:
+        # for laser_tracking_1 I put this fake one to switch easily from one
+        # function to the other
+        blank = numpy.zeros((len(frame), len(frame[0])), dtype='uint8')
+        self.laser_mask = cv2.circle(blank, self.laser_pos, 10, (255, 0, 0), -1)
+        
         return self.laser_pos
 
 
-    def laser_tracking(self):
+    # NOTE: this is not very good when there is a small red dot and no
+    # red reflects on there surfaces. In general is better laser_tracking_1
+    def laser_tracking_2(self):
         """
         Find the laser 
         EXECUTION
@@ -155,11 +167,11 @@ class Tracker(object):
         frame = self.frame
 
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-        lower = numpy.array([0, 0, 230], dtype="uint8")  # 0, 48, 80
-        upper = numpy.array([20, 100, 255], dtype="uint8")  # 20, 255, 255
-        laser_mask = cv2.inRange(hsv, lower, upper)
+        lower = numpy.array([0, 0, 200], dtype="uint8")  # 0, 48, 80
+        upper = numpy.array([40, 255, 255], dtype="uint8")  # 20, 255, 255
+        self.laser_mask = cv2.inRange(hsv, lower, upper)
 
-        M = cv2.moments(laser_mask)
+        M = cv2.moments(self.laser_mask)
         try:
             cX = int(M["m10"] / M["m00"])
             cY = int(M["m01"] / M["m00"])
@@ -216,11 +228,15 @@ class Tracker(object):
             # gree circle for hand
             circle = cv2.circle(frame, self.hand_pos, 150, (0, 255, 0), 4)
 
+        if self.display_flags['paper_mask'] == 1: # PAPER_MASK
+            to_display['paper_mask'] = self.paper_mask
+
+        if self.display_flags['laser_mask'] == 1: # LASER_MASK
+            to_display['laser_mask'] = self.laser_mask
+ 
         if self.display_flags['hand_mask'] == 1: # HAND_MASK
             to_display['hand_mask'] = self.hand_mask
 
-        if self.display_flags['paper_mask'] == 1: # PAPER_MASK
-            to_display['paper_mask'] = self.paper_mask
         
         return to_display
 
@@ -243,7 +259,7 @@ class Tracker(object):
             
             # make trackings
             # self.paper_tracking() this is not used here anymore: see paper_mask_setup
-            self.laser_tracking()
+            self.laser_tracking_1()
             self.hand_tracking()
 
             # display videos according to flags set
@@ -263,6 +279,6 @@ class Tracker(object):
 
 
 if __name__ == '__main__':
-    tracker = Tracker(LASER=1, HAND=1, HAND_MASK=1, PAPER_MASK=1)
+    tracker = Tracker(LASER=1, HAND=1, PAPER_MASK=1, LASER_MASK=1, HAND_MASK=1)
     tracker.run()
     cv2.destroyAllWindows()
