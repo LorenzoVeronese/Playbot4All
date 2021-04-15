@@ -104,13 +104,12 @@ while True:
     cv2.imshow('RGB_VideoFrame', frame)
     cv2.imshow('LaserPointer', mask)
 
-
     key = cv2.waitKey(10)
-    c = chr(key & 255)
-    if c in ['a', 'A', chr(27)]:
+    car = chr(key & 255)
+    if car in ['a', 'A', chr(27)]:
         sys.exit(0)
-    if c in ['q', 'Q', chr(27)]:
-        point = (cnts[0][i][0][0], cnts[0][i][0][1])
+    if car in ['q', 'Q', chr(27)]:
+        point = (c[i][0][0], c[i][0][1])
         cv2.circle(frame, point, 5,
                    (0, 255, 255), 2)
         i = i + 1
