@@ -151,7 +151,7 @@ class Tracker(object):
         # function to the other
         blank = numpy.zeros((len(frame), len(frame[0])), dtype='uint8')
         self.laser_mask = cv2.circle(blank, self.laser_pos, 10, (255, 0, 0), -1)
-        
+
         return self.laser_pos
 
 
