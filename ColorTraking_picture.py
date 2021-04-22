@@ -200,7 +200,7 @@ class LaserTracker(object):
                 q_line = y_center - x_center * m_line
                 x_point = 1280 #Substitute with self.cam_width
                 y_point = int(x_point * m_line + q_line)
-                cv2.line(frame, (int(x_center), int(y_center)), (x_point, y_point), (0, 255, 0), 2)
+                #cv2.line(frame, (int(x_center), int(y_center)), (x_point, y_point), (0, 255, 0), 2)
                 #Now knowing the the axes, the real object lenght and tis center we can find where the real edge is
                     #First I caluclate half the side of the contour
                 half_side = visible_lenght/2 #(numpy.sqrt(numpy.square(box[0][0] - box[3][0]) + numpy.square(box[0][1] - box[3][1])))/2
@@ -329,7 +329,7 @@ class LaserTracker(object):
             while True:
                 # 1. capture the current image
                 #success, frame = self.capture.read() DECOMMENTARE PER USARE LA WEBCAM LINEE 295-299
-                frame  = cv2.imread("Foto_prova_4.jpg")
+                frame  = cv2.imread("Foto_prova_contorni.jpg")
                 #if not success:  # no image captured... end the processing
                 #    sys.stderr.write("Could not read camera frame. Quitting\n")
                 #    sys.exit(1)
