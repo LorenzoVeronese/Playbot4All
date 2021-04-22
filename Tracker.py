@@ -4,7 +4,7 @@ import sys
 import statistics
 import imutils
 
-#ciao
+# prova git
 class Tracker(object):
     def __init__(self, LASER, HAND, PAPER_MASK, LASER_MASK, HAND_MASK):
         self.camera = None
