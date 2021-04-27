@@ -3,25 +3,36 @@ import numpy
 import sys
 import statistics
 import imutils
+from collections import deque
 
-# prova gitttttttttt
+
 class Tracker(object):
-    def __init__(self, LASER, HAND, PAPER_MASK, LASER_MASK, HAND_MASK):
+    def __init__(self, LASER, HAND, PAPER_MASK, LASER_MASK, HAND_MASK, PEN, PEN_MASK):
         self.camera = None
         self.frame = None
-        self.prev_frame = None
+        self.prev_frame = None # actually not used
+
         self.laser_pos = (0, 0)
         self.hand_pos = (0, 0)
+
         self.paper_mask = None
         self.laser_mask = None
         self.hand_mask = None
+
+        self.q_line_pen = 0
+        self.m_line_pen = 0
+        self.pen = None
+        self.pen_mask = None
+
         # what to display (debugging): see funct 'display'
         self.display_flags = {
             'laser' : LASER, 
             'hand' : HAND, 
             'laser_mask' : LASER_MASK,
             'paper_mask' : PAPER_MASK,
-            'hand_mask' : HAND_MASK
+            'hand_mask' : HAND_MASK,
+            'pen' : PEN,
+            'pen_mask' : PEN_MASK
         }
 
 
@@ -211,6 +222,79 @@ class Tracker(object):
         return self.hand_pos
 
 
+    def pen_tracking(self):
+        hsv = cv2.cvtColor(self.frame.copy(), cv2.COLOR_BGR2HSV)
+        h, s, v = cv2.split(hsv)
+
+        lower = numpy.array([17, 95, 111], dtype = "uint8")
+        upper = numpy.array([65, 255, 255], dtype = "uint8")
+        self.pen_mask = cv2.inRange(hsv, lower, upper)
+
+        pts = deque(maxlen=64)
+        cnts = cv2.findContours(self.pen_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        cnts = imutils.grab_contours(cnts)
+
+        center = None
+        # I need at least one contour
+        if len(cnts) > 0: 
+            # find the largest contour in the mask, then use
+            # it to compute the minimum enclosing circle and
+            # centroid
+            c = max(cnts, key=cv2.contourArea)
+
+            rect = cv2.minAreaRect(c)
+            box = cv2.boxPoints(rect)
+            box = numpy.int0(box)
+
+            # this is for the display function: if I put PEN = 1, I
+            # want to see boxes which let us know how pen tracking
+            # is working
+            self.pen = self.frame.copy()
+            cv2.drawContours(self.pen, [box], 0, (0, 0, 255), 2)
+
+            # Find the object rotational angle and its center, then finds the 
+            # line going throught the center and parallel to the object 
+            # countor (its axes)
+            if box[0][1] > box[2][1]:
+                highest_point_2 = box[0]
+            else:
+                highest_point_2 = box[2]
+            lowest_point = box[1]
+            m_line = (highest_point_2[1] - lowest_point[1]) / (highest_point_2[0] - lowest_point[0])
+            x_center = rect[0][0]
+            y_center = rect[0][1]
+            visible_lenght = rect[1][0]
+            q_line = y_center - x_center * m_line
+            x_point = len(self.frame)  # Substitute with self.cam_width
+
+            # draw the pen-line
+            try:
+                y_point = int(x_point * m_line + q_line)
+                x_center = int(x_center)
+                y_center = int(y_center)
+                cv2.line(self.pen, (x_center, y_center), (x_point, y_point), (0, 255, 0), 2)
+            except:
+                # TODO: catch when the pen is not in sight
+                print("Cannot see pen")
+
+            blank_line = numpy.zeros((len(self.frame), len(self.frame[0])), dtype='uint8')
+            blank_circle = blank_line
+            cv2.line(blank_line, (x_center, y_center),(x_point, y_point), (0, 255, 0), 1)
+            cv2.circle(blank_circle, self.hand_pos, 150, (0, 255, 0), 1)
+
+            tip_mask = bitwise_and(blank_line, blank_circle)
+            M = cv2.moments(self.hand_mask)
+            try:
+                cX = int(M["m10"] / M["m00"])
+                cY = int(M["m01"] / M["m00"])
+            except (ZeroDivisionError):
+                cX = 0
+                cY = 0
+            tip_pos = (cX - 25, cY - 25)
+
+            cv2.circle(self.pen, tip_pos, 80, (0, 255, 0), 3)
+
+
     def display(self):
         """
         Display video for debugging according to flags
@@ -237,6 +321,11 @@ class Tracker(object):
         if self.display_flags['hand_mask'] == 1: # HAND_MASK
             to_display['hand_mask'] = self.hand_mask
 
+        if self.display_flags['pen'] == 1:
+            pass #TODO
+         
+        if self.display_flags['pen_mask'] == 1:
+            to_display['pen_mask'] = self.pen_mask
         
         return to_display
 
@@ -261,6 +350,7 @@ class Tracker(object):
             # self.paper_tracking() this is not used here anymore: see paper_mask_setup
             self.laser_tracking_1()
             self.hand_tracking()
+            self.pen_tracking()
 
             # display videos according to flags set
             to_display = self.display()
@@ -279,6 +369,6 @@ class Tracker(object):
 
 
 if __name__ == '__main__':
-    tracker = Tracker(LASER=1, HAND=1, PAPER_MASK=1, LASER_MASK=1, HAND_MASK=1)
+    tracker = Tracker(LASER=1, HAND=1, PAPER_MASK=1, LASER_MASK=1, HAND_MASK=1, PEN = 1, PEN_MASK = 1)
     tracker.run()
     cv2.destroyAllWindows()
