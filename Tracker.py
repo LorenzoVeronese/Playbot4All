@@ -7,32 +7,34 @@ from collections import deque
 
 
 class Tracker(object):
-    def __init__(self, LASER, HAND, PAPER_MASK, LASER_MASK, HAND_MASK, PEN, PEN_MASK):
+    def __init__(self, LASER, HAND, PAPER_MASK, LASER_MASK, HAND_MASK, PEN, PEN_MASK, TIP_MASK):
+        # camera
         self.camera = None
         self.frame = None
         self.prev_frame = None # actually not used
-
+        # laser and hand positions
         self.laser_pos = (0, 0)
         self.hand_pos = (0, 0)
-
+        # laser and hand masks
         self.paper_mask = None
         self.laser_mask = None
         self.hand_mask = None
-
-        self.q_line_pen = 0
-        self.m_line_pen = 0
-        self.pen = None
+        # pen
+        self.pen_box = None
+        self.pen_line = (0, 0, 0, 0)
+        self.pen_tip_pos = (0, 0)
         self.pen_mask = None
-
+        self.tip_mask = None
         # what to display (debugging): see funct 'display'
         self.display_flags = {
-            'laser' : LASER, 
-            'hand' : HAND, 
-            'laser_mask' : LASER_MASK,
-            'paper_mask' : PAPER_MASK,
-            'hand_mask' : HAND_MASK,
-            'pen' : PEN,
-            'pen_mask' : PEN_MASK
+            'laser' : LASER, # red circle for the laser
+            'hand' : HAND, # green circle the hand
+            'laser_mask' : LASER_MASK, # threshold mask of the laser
+            'paper_mask' : PAPER_MASK, # threshold mask of the paper (see paper_setup)
+            'hand_mask' : HAND_MASK, # threshold mask of the hand
+            'pen' : PEN, # blue box for the pen, light blue dot for the pen tip
+            'pen_mask' : PEN_MASK, # threshold mask of the pen
+            'tip_mask' : TIP_MASK # to see intersection between hand circle and pen line
         }
 
 
@@ -86,21 +88,26 @@ class Tracker(object):
         """
         frame = self.frame.copy()
 
+        # define a bgr based mask
         lower = numpy.array([85, 85, 90], dtype="uint8")  # 0, 48, 80
         upper = numpy.array([255, 255, 255], dtype="uint8")  # 20, 255, 255
         color_mask = cv2.inRange(frame, lower, upper)
 
+        # define a hsv based mask
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
         lower = numpy.array([0, 0, 120], dtype="uint8")  # 105
         upper = numpy.array([179, 110, 255], dtype="uint8")  # 20, 255, 255
         hsv_mask = cv2.inRange(hsv, lower, upper)
 
+        # and between the two masks: more precision
         self.paper_mask = cv2.bitwise_and(hsv_mask, color_mask)
 
+        # find paper contour
         blank = numpy.zeros((len(frame), len(frame[0])), dtype='uint8')
         paper, thresh = cv2.threshold(self.paper_mask, 40, 255, 0)
         contours, hierarchy = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
 
+        # fill of white the paper contour found
         if len(contours) != 0:
             c = max(contours, key=cv2.contourArea)
             # draw in blue the contours that were founded
@@ -168,7 +175,7 @@ class Tracker(object):
 
     # NOTE: this is not very good when there is a small red dot and no
     # red reflects on there surfaces. In general is better laser_tracking_1
-    def laser_tracking_2(self):
+    def laser_tracking_2(self): # unused: see laser_tracking_1 for the current version
         """
         Find the laser 
         EXECUTION
@@ -177,11 +184,13 @@ class Tracker(object):
         """
         frame = self.frame
 
+        # define hsv based mask
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
         lower = numpy.array([0, 0, 200], dtype="uint8")  # 0, 48, 80
         upper = numpy.array([40, 255, 255], dtype="uint8")  # 20, 255, 255
         self.laser_mask = cv2.inRange(hsv, lower, upper)
 
+        # find center (moment) of the area found
         M = cv2.moments(self.laser_mask)
         try:
             cX = int(M["m10"] / M["m00"])
@@ -201,15 +210,17 @@ class Tracker(object):
         set lower and upper value of threshold, find moment (center of all
         regions found): this is where the hand is positioned
         """
+        # define and find hsv based mask
         hsv = cv2.cvtColor(self.frame.copy(), cv2.COLOR_BGR2HSV)
         lower = numpy.array([0, 80, 100], dtype="uint8")  # 0, 48, 80
         upper = numpy.array([20, 200, 200], dtype="uint8")  # 20, 255, 255
         self.hand_mask = cv2.inRange(hsv, lower, upper)
-        #hand_mask_and = cv2.bitwise_and(self.hand_mask, self.paper_mask)
+        
+        # I don't want things which aren't on the paper
         self.hand_mask = cv2.bitwise_and(self.hand_mask, self.paper_mask)
 
-
-        # NOTE: catch error when you have white light
+        # find center of the area found
+        # TODO: catch error when you have white light using last not zero value
         M = cv2.moments(self.hand_mask)
         try:
             cX = int(M["m10"] / M["m00"])
@@ -223,13 +234,22 @@ class Tracker(object):
 
 
     def pen_tracking(self):
+        """
+        find the pen tip
+        EXECUTION
+        find contour of the pen using a mask.
+        using a box surrounding the contour, find the pen axis
+        intersect hand circle and pen line to find the pen tip (approximately)
+        """
+        # PEN SEARCHING
+        # define and find hsv based mask
         hsv = cv2.cvtColor(self.frame.copy(), cv2.COLOR_BGR2HSV)
         h, s, v = cv2.split(hsv)
-
         lower = numpy.array([17, 95, 111], dtype = "uint8")
         upper = numpy.array([65, 255, 255], dtype = "uint8")
         self.pen_mask = cv2.inRange(hsv, lower, upper)
 
+        # find contours
         pts = deque(maxlen=64)
         cnts = cv2.findContours(self.pen_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         cnts = imutils.grab_contours(cnts)
@@ -237,80 +257,83 @@ class Tracker(object):
         center = None
         # I need at least one contour
         if len(cnts) > 0: 
-            # find the largest contour in the mask, then use
-            # it to compute the minimum enclosing circle and
-            # centroid
+            # find largest contour
             c = max(cnts, key=cv2.contourArea)
 
+            # put a rectangle which surround the contour (pen) found
             rect = cv2.minAreaRect(c)
-            box = cv2.boxPoints(rect)
-            box = numpy.int0(box)
-
-            # this is for the display function: if I put PEN = 1, I
-            # want to see boxes which let us know how pen tracking
-            # is working
-            self.pen = self.frame.copy()
-            cv2.drawContours(self.pen, [box], 0, (0, 0, 255), 2)
+            self.pen_box = cv2.boxPoints(rect)
+            self.pen_box = numpy.int0(self.pen_box)
 
             # Find the object rotational angle and its center, then finds the 
             # line going throught the center and parallel to the object 
             # countor (its axes)
-            if box[0][1] > box[2][1]:
-                highest_point_2 = box[0]
+            if self.pen_box[0][1] > self.pen_box[2][1]:
+                highest_point_2 = self.pen_box[0]
             else:
-                highest_point_2 = box[2]
-            lowest_point = box[1]
+                highest_point_2 = self.pen_box[2]
+            lowest_point = self.pen_box[1]
+
+            # set a line along the pen
             m_line = (highest_point_2[1] - lowest_point[1]) / (highest_point_2[0] - lowest_point[0])
             x_center = rect[0][0]
             y_center = rect[0][1]
             visible_lenght = rect[1][0]
             q_line = y_center - x_center * m_line
-            x_point = len(self.frame)  # Substitute with self.cam_width
+            x_point = len(self.frame[0])  # the line must "cut" the frame
 
             # draw the pen-line
             try:
                 y_point = int(x_point * m_line + q_line)
                 x_center = int(x_center)
                 y_center = int(y_center)
-                cv2.line(self.pen, (x_center, y_center), (x_point, y_point), (0, 255, 0), 2)
+                # save some points for display purpose (see funct self.display())
+                self.pen_line = (x_center, y_center, x_point, y_point)
             except:
                 # TODO: catch when the pen is not in sight
+                y_point = 1
                 print("Cannot see pen")
 
+            # TIP PEN SEARCHING
+            # set on a blank the hand circle and the pen line
             blank_line = numpy.zeros((len(self.frame), len(self.frame[0])), dtype='uint8')
             blank_circle = blank_line
-            cv2.line(blank_line, (x_center, y_center),(x_point, y_point), (0, 255, 0), 1)
-            cv2.circle(blank_circle, self.hand_pos, 150, (0, 255, 0), 1)
+            cv2.line(blank_line, (int(x_center), int(y_center)),(x_point, y_point), (255, 255, 255), 10)
+            cv2.circle(blank_circle, self.hand_pos, 150, (255, 255, 255), 10)
+               
+            # intersection between line and circle
+            tip_mask = cv2.bitwise_and(blank_line, blank_circle)
+            self.tip_mask = tip_mask
+            cv2.circle(self.tip_mask, self.hand_pos, 150, (0, 255, 0), -1)
 
-            tip_mask = bitwise_and(blank_line, blank_circle)
-            M = cv2.moments(self.hand_mask)
+            # only one point remained
+            M = cv2.moments(tip_mask)
             try:
                 cX = int(M["m10"] / M["m00"])
                 cY = int(M["m01"] / M["m00"])
             except (ZeroDivisionError):
                 cX = 0
                 cY = 0
-            tip_pos = (cX - 25, cY - 25)
-
-            cv2.circle(self.pen, tip_pos, 80, (0, 255, 0), 3)
+            self.pen_tip_pos = (cX - 25, cY - 25)
 
 
     def display(self):
         """
-        Display video for debugging according to flags
+        Display video for debugging according to self.display_flags
         EXECUTION
-        create a dictionary in which is put any video required
+        create a dictionary in which any video required is put
         """
         frame = self.frame.copy()
-        to_display = {'frame_circles':frame, 'hand_mask':None}
+        # show the video by default. On it we can draw signals (see lines below)
+        to_display = {'frame' : frame}
 
         if self.display_flags['laser'] == 1: # LASER on image
             # red circle for laser
-            circle = cv2.circle(frame, self.laser_pos, 50, (255, 0, 0), 4)
+            circle = cv2.circle(frame, self.laser_pos, 30, (0, 0, 255), 3)
 
         if self.display_flags['hand'] == 1: # HAND on image
-            # gree circle for hand
-            circle = cv2.circle(frame, self.hand_pos, 150, (0, 255, 0), 4)
+            # green circle for hand
+            circle = cv2.circle(frame, self.hand_pos, 120, (0, 255, 0), 3)
 
         if self.display_flags['paper_mask'] == 1: # PAPER_MASK
             to_display['paper_mask'] = self.paper_mask
@@ -321,11 +344,19 @@ class Tracker(object):
         if self.display_flags['hand_mask'] == 1: # HAND_MASK
             to_display['hand_mask'] = self.hand_mask
 
-        if self.display_flags['pen'] == 1:
-            pass #TODO
+        if self.display_flags['pen'] == 1: # PEN (box which contains it)
+            # blue box on the pen
+            cv2.drawContours(frame, [self.pen_box], 0, (255, 0, 0), 3)
+            # yellow line along the pen
+            cv2.line(frame, (self.pen_line[0], self.pen_line[1]), (self.pen_line[2], self.pen_line[3]), (0, 255, 255), 3)
+            # light blue on the pen tip
+            cv2.circle(frame, self.pen_tip_pos, 10, (255, 255, 0), -1)
          
-        if self.display_flags['pen_mask'] == 1:
+        if self.display_flags['pen_mask'] == 1: # PEN_MASK to check the color
             to_display['pen_mask'] = self.pen_mask
+
+        if self.display_flags['tip_mask'] == 1: # TIP_MASK to check the intersection hand circle - pen line
+            to_display['tip_mask'] = self.tip_mask
         
         return to_display
 
@@ -358,7 +389,11 @@ class Tracker(object):
                 pass
             else:
                 for video in to_display.items():
-                    cv2.imshow(f'{video[0]}', video[1])
+                    if type(video[1]) == type(None):
+                        pass
+                    else:
+                        print(type(video[1]))
+                        cv2.imshow(f'{video[0]}', video[1])
             
             # to stop the process
             key = cv2.waitKey(1)
@@ -369,6 +404,8 @@ class Tracker(object):
 
 
 if __name__ == '__main__':
-    tracker = Tracker(LASER=1, HAND=1, PAPER_MASK=1, LASER_MASK=1, HAND_MASK=1, PEN = 1, PEN_MASK = 1)
+    tracker = Tracker(LASER=1, HAND=1, PAPER_MASK=0, LASER_MASK=0, HAND_MASK=0, PEN = 1, PEN_MASK=0, TIP_MASK=0)
+
     tracker.run()
+    
     cv2.destroyAllWindows()
