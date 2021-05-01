@@ -6,6 +6,13 @@ import imutils
 from collections import deque
 
 
+# TODO: when the laser is behind the hand (the camera can't see it)
+# TODO: implement function "play":
+    # -laser move slower if the pen tip is far, and after a while it stops
+    # -feedback from the speaker
+    # -how much distance is good? This depends on the height of the camera
+
+
 class Tracker(object):
     def __init__(self, LASER, HAND, PAPER_MASK, LASER_MASK, HAND_MASK, PEN, PEN_MASK, TIP_MASK):
         # camera
@@ -292,7 +299,7 @@ class Tracker(object):
             except:
                 # TODO: catch when the pen is not in sight
                 y_point = 1
-                print("Cannot see pen")
+                # print("Cannot see pen")
 
             # TIP PEN SEARCHING
             # set on a blank the hand circle and the pen line
@@ -315,6 +322,12 @@ class Tracker(object):
                 cX = 0
                 cY = 0
             self.pen_tip_pos = (cX - 25, cY - 25)
+
+
+    def play(self):
+        # compute euclidean distance between laser and pen tip
+        dist = numpy.linalg.norm(numpy.array(self.laser_pos) - numpy.array(self.pen_tip_pos))
+        print(dist)
 
 
     def display(self):
@@ -383,6 +396,9 @@ class Tracker(object):
             self.hand_tracking()
             self.pen_tracking()
 
+            # feedback and mark
+            self.play()
+
             # display videos according to flags set
             to_display = self.display()
             if len(to_display.items()) == 0:
@@ -392,7 +408,6 @@ class Tracker(object):
                     if type(video[1]) == type(None):
                         pass
                     else:
-                        print(type(video[1]))
                         cv2.imshow(f'{video[0]}', video[1])
             
             # to stop the process

@@ -113,5 +113,3 @@ while True:
         cv2.circle(frame, point, 5,
                    (0, 255, 255), 2)
         i = i + 1
-
-
