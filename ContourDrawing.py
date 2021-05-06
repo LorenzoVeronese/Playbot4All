@@ -77,14 +77,14 @@ class ContourDrawer(object):
         and give the contour's point list
         """
         frame  = self.current_draw.copy()
-        frame = cv2.imread('Foto_prova_contorni.jpg')
-        frame = cv2.resize(frame, (1000, 500))
+        # NOTE: with the resize, the following works bad
+        # frame = cv2.resize(frame, (1000, 500))
         blur = cv2.GaussianBlur(frame, (3, 3), cv2.BORDER_DEFAULT)
 
         canny = cv2.Canny(blur, 125, 175)
         # you will se a segmented letter: this is not a problem for the laser.
         # if you want to see continuous lines, switch to 'cv2.CHAIN_APPROX_NONE'
-        cnts = cv2.findContours(canny, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        cnts = cv2.findContours(canny, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
         
         i = 0
         while True:
@@ -164,5 +164,5 @@ class ContourDrawer(object):
 
 
 if __name__ == '__main__':
-    drawer = ContourDrawer('Foto_prova_contorni.jpg')
+    drawer = ContourDrawer()
     drawer.run()
