@@ -430,7 +430,7 @@ class Tracker(object):
 
 
 if __name__ == '__main__':
-    tracker = Tracker(LASER=1, HAND=1, PAPER_MASK=1, LASER_MASK=1, HAND_MASK=0, PEN = 0, PEN_MASK=0, TIP_MASK=0)
+    tracker = Tracker(LASER=1, HAND=1, PAPER_MASK=0, LASER_MASK=0, HAND_MASK=0, PEN = 0, PEN_MASK=0, TIP_MASK=0)
 
     tracker.run()
     
