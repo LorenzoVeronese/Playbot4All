@@ -10,7 +10,7 @@ filename = './files/mickey.gcode'
 #filename = './files/robot.gcode'
 #filename = './files/raspi.gcode'
 
-x_stepper = stepper_motor(17 ,18, 21, 22)
+x_stepper = stepper_motor(17 ,12, 21, 22) #changed 18 to 12 because 12 is for servo
 y_stepper = stepper_motor(23, 24, 25, 27)
 laser = laser(26)
 
