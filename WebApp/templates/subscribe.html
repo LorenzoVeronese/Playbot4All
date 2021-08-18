@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+
+{% block title %} {{title}} {% endblock %}
+
+{% block content %}
+
+<h1>
+    Subscribe now
+    <form action = "/form" method = "POST">
+    <div class = 'form-group'>
+        <!--<label for = 'Email'>Email address</label>-->
+        <input type = "email" class = "form-control" id = "example" aria-describedby="emailHelp" placeholder="Email address" name = 'email'>
+    </div>
+    </form>
+</h1>
+
+{% endblock %}
