@@ -1,0 +1,18 @@
+<h1> Scegli un'immagine (in formato gcode) da caricare </h1>
+
+<form action = "/picture" method = "POST">
+    <div class = 'form-group'>
+		<label for = "Example name"> Nome </label>
+        <input type="text" name='name'>
+        <small> Questo è il nome che verrà assegnato all'immagine </small>
+    </div>
+    <br/>
+    <div class = 'form-group'>
+		<label for = "Example name"> File </label>
+        <input type = "file" name = 'file'>
+        <small> Attenzione: dev'essere in formato gcode </small>
+    </div>
+    <br/>
+        <button  type = "submit" class = "btn btn-primary"> Invia </button>
+</form>
+
