@@ -93,6 +93,17 @@ def move(x_distance, y_distance, x, y):
 
 try:
   for line in open(filename, 'r'):
+    # to check if the user stopped the process
+    fd = open('processend.txt', 'r')
+    if int(fd.readline()) == 1:
+      fd.close()
+      os.system('rm ' + '/home/pi/Desktop/Server/processend.txt')
+      fd = open('processend.txt', 'w')
+      fd.write('0')
+      fd.close()
+      break
+    fd.close()
+    
     if line[0:3]=='G21':
       print( 'G21: working in milimmiters')
 
