@@ -5,22 +5,11 @@ from laser_control import laser
 #filename = './files/circle.gcode'
 #filename = './files/gear.gcode'
 #filename = './files/dolphin.gcode'
-filename = './files/mickey.gcode'
+#filename = './files/mickey.gcode'
 #filename = './files/hoover.gcode'
 #filename = './files/robot.gcode'
 #filename = './files/raspi.gcode'
-
-# to check if the user stopped the process
-    fd = open('processend.txt', 'r')
-    if int(fd.readline()) == 1:
-      fd.close()
-      os.system('rm ' + '/home/pi/Desktop/Server/processend.txt')
-      fd = open('processend.txt', 'w')
-      fd.write('0')
-      fd.close()
-      break
-    fd.close()
-
+    
 x_stepper = stepper_motor(17 ,12, 21, 22) #changed 18 to 12 because 12 is for servo
 y_stepper = stepper_motor(23, 24, 25, 27)
 laser = laser(26)
